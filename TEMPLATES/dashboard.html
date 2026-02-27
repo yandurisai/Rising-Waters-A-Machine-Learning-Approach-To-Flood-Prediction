@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloodGuard AI – Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
+        .navbar { background: linear-gradient(135deg, #1565C0, #0288D1); }
+        .page-header { background: linear-gradient(135deg, #0D47A1, #0288D1); color: white; padding: 2rem 0; }
+        .card { border: none; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .card-header { font-weight: 600; border-radius: 14px 14px 0 0 !important; }
+        .metric-card { text-align: center; padding: 1.5rem; border-radius: 14px; background: white;
+                       box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+        .metric-val { font-size: 2.2rem; font-weight: 800; }
+        .metric-lbl { color: #666; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        .plot-img { width: 100%; border-radius: 10px; border: 1px solid #eee; }
+        .model-row:hover { background: #f0f8ff; }
+        table th { background: #1565C0; color: white; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/"><i class="fas fa-water me-2"></i>FloodGuard AI</a>
+        <div class="d-flex">
+            <a href="/" class="btn btn-light btn-sm"><i class="fas fa-home me-1"></i>Predictor</a>
+        </div>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="container text-center">
+        <h2><i class="fas fa-chart-bar me-2"></i>ML Model Dashboard</h2>
+        <p class="mb-0 opacity-75">Exploratory Data Analysis · Model Comparison · Evaluation Metrics</p>
+    </div>
+</div>
+
+<div class="container py-4">
+    <!-- Summary Metrics -->
+    <div class="row g-3 mb-4">
+        {% set bm = metrics.models[metrics.best_model] %}
+        <div class="col-md-3 col-6">
+            <div class="metric-card">
+                <div class="metric-val text-primary">{{ "%.1f"|format(bm.accuracy * 100) }}%</div>
+                <div class="metric-lbl">Accuracy</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="metric-card">
+                <div class="metric-val text-success">{{ "%.1f"|format(bm.f1 * 100) }}%</div>
+                <div class="metric-lbl">F1 Score</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="metric-card">
+                <div class="metric-val text-warning">{{ "%.1f"|format(bm.recall * 100) }}%</div>
+                <div class="metric-lbl">Recall</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="metric-card">
+                <div class="metric-val text-info">{{ "%.3f"|format(metrics.bootstrap_auc_mean) }}</div>
+                <div class="metric-lbl">Bootstrap AUC</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Comparison Table -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white py-3">
+            <i class="fas fa-table me-2"></i>Model Comparison
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead><tr>
+                        <th>Model</th><th>Accuracy</th><th>Precision</th>
+                        <th>Recall</th><th>F1</th><th>ROC-AUC</th>
+                        <th>CV F1 (mean±std)</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for name, m in metrics.models.items() %}
+                    <tr class="model-row {% if name == metrics.best_model %}table-primary fw-bold{% endif %}">
+                        <td>{{ name }}{% if name == metrics.best_model %} <span class="badge bg-warning text-dark">Best</span>{% endif %}</td>
+                        <td>{{ "%.3f"|format(m.accuracy) }}</td>
+                        <td>{{ "%.3f"|format(m.precision) }}</td>
+                        <td>{{ "%.3f"|format(m.recall) }}</td>
+                        <td>{{ "%.3f"|format(m.f1) }}</td>
+                        <td>{{ "%.3f"|format(m.roc_auc) }}</td>
+                        <td>{{ "%.3f"|format(m.cv_f1_mean) }} ± {{ "%.3f"|format(m.cv_f1_std) }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plots Grid -->
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">Class Distribution</div>
+                <div class="card-body"><img src="/static/plots/class_distribution.png" class="plot-img" alt="Class Distribution"></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">Feature Distributions by Flood Class</div>
+                <div class="card-body"><img src="/static/plots/feature_distributions.png" class="plot-img" alt="Distributions"></div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">Feature Correlation Matrix</div>
+                <div class="card-body"><img src="/static/plots/correlation_matrix.png" class="plot-img" alt="Correlation Matrix"></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">Model Performance Comparison</div>
+                <div class="card-body"><img src="/static/plots/model_comparison.png" class="plot-img" alt="Model Comparison"></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">ROC Curves – All Models</div>
+                <div class="card-body"><img src="/static/plots/roc_curves.png" class="plot-img" alt="ROC Curves"></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">Confusion Matrix – Best Model</div>
+                <div class="card-body"><img src="/static/plots/confusion_matrix.png" class="plot-img" alt="Confusion Matrix"></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">Feature Importance (Random Forest)</div>
+                <div class="card-body"><img src="/static/plots/feature_importance.png" class="plot-img" alt="Feature Importance"></div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">Bootstrap AUC Distribution</div>
+                <div class="card-body"><img src="/static/plots/bootstrap_auc.png" class="plot-img" alt="Bootstrap AUC"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="bg-dark text-white text-center py-3 mt-4">
+    <small><i class="fas fa-water me-1"></i>FloodGuard AI — Machine Learning Dashboard</small>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
